@@ -1,0 +1,14 @@
+[{
+  "name": "Notice Crowd",
+  "file": "noticecrowd",
+  "extension": "ipf",
+  "fileVersion": "v1.2.2",
+  "releaseTag": "noticecrowd-v1.2.2",
+  "unicode": "📖",
+  "description": "追従者の出現時間タイマー",
+  "tags": [
+      "boss",
+      "timer",
+      "corwd"
+  ]
+}]
