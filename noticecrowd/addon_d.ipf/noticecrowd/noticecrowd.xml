@@ -23,5 +23,6 @@
     <richtext name="spawnText2" rect="0 0 280 16" margin="10 162 0 0" format="{@st43}{s16}%s{/}{/}" param1="value"/>
     <richtext name="spawnText3" rect="0 0 280 16" margin="10 178 0 0" format="{@st43}{s16}%s{/}{/}" param1="value"/>
 
+
   </controls>
 </uiframe>

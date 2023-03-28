@@ -10,6 +10,8 @@ local g = _G["ADDONS"][author][addonName];
 
 local version = '1.2.6';
 
+
+
 --ライブラリ読み込み
 local acutil = require('acutil');
 --Lua 5.2+ migration
