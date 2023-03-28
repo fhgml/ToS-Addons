@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<uiframe name="ncspawnwindow" x="400" y="300" width="220" height="120" version="2">
+  <frame layout_gravity="left top" margin="0 0 0 0"/>
+  <input moveable="true" moveintitlebar="false" hittestframe="true" resize="false"/>
+  <draw drawframe="true" drawtitlebar="false" drawnotitlebar="false"/>
+  <layer layerlevel="12"/>
+  <skin frameskin="chat_window"/>
+  <option closebutton="false" visible="false"/>
+  <script OpenScp="NCSPAWNWINDOW_OPEN" CloseScp="NCSPAWNWINDOW_CLOSE" LBtnUpScp="NCSPAWNWINDOW_END_DRAG"/>
+  <controls>
+    <timer name="timerTick" rect="0 0 10 10"/>
+    <button name="closeButton" layout_gravity="right top" rect="0 0 35 35" margin="0 10 10 0" image="testclose_button" stretch="true" hittest="true" MouseOnAnim="btn_mouseover" MouseOffAnim="btn_mouseoff" oversound="button_over" clicksound="button_click_big" LBtnUpScp="NCSPAWNWINDOW_CLOSE"/>
+    
+    <richtext name="spawnText1" rect="0 0 280 20" margin="10 20 0 0" format="{@st43}{s20}%s{/}{/}" param1="value"/>
+    <richtext name="spawnText2" rect="0 0 280 20" margin="10 50 0 0" format="{@st43}{s20}%s{/}{/}" param1="value"/>
+    <richtext name="spawnText3" rect="0 0 280 20" margin="10 80 0 0" format="{@st43}{s20}%s{/}{/}" param1="value"/>
+
+  </controls>
+</uiframe>

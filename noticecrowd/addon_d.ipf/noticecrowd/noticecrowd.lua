@@ -8,7 +8,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.2.6';
+local version = '1.3.1';
 
 
 
@@ -411,21 +411,40 @@ function g.NOTICECROWD_NEW_NOTICE_ON_MSG(frame, msg, argStr, argNum)
     -- DEVELOPERCONSOLE_PRINT_TEXT("msg: "..msg.." argStr: "..argStr);
     if string.find(argStr,"AppearPCMonster") then
         -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
-        local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
-        local cmsg = "追従者出現:"..mapstr;
-        table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
-        CHAT_SYSTEM(cmsg);
-        if g.settings.ShowPTChat then
-            ui.Chat("/p "..cmsg);
-        end
-        GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
-        imcSound.PlayMusic('m_boss_scenario2');
-        NOTICECROWD_SET_TIMELOG();
-        NOTICECROWD_ON_COMPLETE();
-        self:UpdateSpawnLocation();
+        --local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
+        --local cmsg = "追従者出現:"..mapstr;
+        --table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+        --CHAT_SYSTEM(cmsg);
+        --if g.settings.ShowPTChat then
+        --    ui.Chat("/p "..cmsg);
+        --end
+        --GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
+        --imcSound.PlayMusic('m_boss_scenario2');
+        --NOTICECROWD_SET_TIMELOG();
+        --NOTICECROWD_ON_COMPLETE();
+        --self:UpdateSpawnLocation();
+        NOTICECROWD_APPEARCROWD(argStr);
     elseif string.find(argStr,"DisappearPCMonster") then
         g.spawnmap = {};
     end
+end
+
+function NOTICECROWD_APPEARCROWD(str)
+    -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
+    local mapstr = string.gsub(str,".*(@dicID.*%*%^).*","%1");
+    local cmsg = "追従者出現:"..mapstr;
+    table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+    CHAT_SYSTEM(cmsg);
+    if g.settings.ShowPTChat then
+        ui.Chat("/p "..cmsg);
+    end
+    GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
+    imcSound.PlayMusic('m_boss_scenario2');
+    NCSPAWNWINDOW_COPY_SPAWN(g.spawnmap);
+    NCSPAWNWINDOW_SET_WINDOW();
+    NOTICECROWD_SET_TIMELOG();
+    NOTICECROWD_ON_COMPLETE();
+    g:UpdateSpawnLocation();
 end
 
 function NOTICECROWD_DEBUG_NOTICE_MSG()
@@ -433,15 +452,7 @@ function NOTICECROWD_DEBUG_NOTICE_MSG()
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20161012_023686$*^#@!",
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20170418_027530$*^#@!",
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150804_014154$*^#@!"
-        local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
-        local cmsg = "追従者出現:"..mapstr;
-        table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
-        CHAT_SYSTEM(argStr);
-        CHAT_SYSTEM(cmsg);
-        if g.settings.ShowPTChat then
-            ui.Chat("/p "..cmsg);
-        end
-        g:UpdateSpawnLocation();
+        NOTICECROWD_APPEARCROWD(argStr);
 end
 
 function NOTICECROWD_GET_DIFF_TIME()
@@ -557,4 +568,5 @@ function NOTICECROWD_HELP()
     CHAT_SYSTEM("nextcrowd: テキストチャットに追従者が出るまでの時間を表示");
     CHAT_SYSTEM("setcrowdtime: /setcrowdtime (時刻) (分) で前回出た追従者の時刻を設定");
     CHAT_SYSTEM("showptchat: PTチャットへ追従者のログを記録 on/off");
+    CHAT_SYSTEM("ncshowspawn: 出現先を別ウィンドウに出力する on/off");
 end
