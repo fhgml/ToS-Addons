@@ -8,7 +8,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.1.0';
+local version = '1.2.6';
 
 --ライブラリ読み込み
 local acutil = require('acutil');
@@ -22,6 +22,14 @@ g.timerlogFileLoc = string.format("%s/timer.json", g.settingsDirLoc);
 g.DefaultSettings = {};
 g.DefaultSettings.Position = {X = 400, Y = 300};
 g.DefaultSettings.EnabledMaps = {};
+g.DefaultSettings.ShowPTChat = false;
+
+g.DefaultLastTime = {
+    day = -1,
+    hour = 0,
+    min = 0,
+    sec = 0
+};
 
 if not g.loaded then
     g.settings = g.DefaultSettings;
@@ -34,6 +42,7 @@ g.timerTick = 0
 g.startTick = 0
 g.loopTick = 0
 g.description = nil
+g.spawnmap = {};
 
 -- DEVELOPERCONSOLE_PRINT_TEXT(string.format("%s.lua is loaded", addonName));
 
@@ -91,6 +100,7 @@ function g.UpdateFrame(self)
     self:UpdateTimerDesc();
     self:UpdateTimerRemaining();
     self:UpdateFrameLanguage();
+    self:UpdateSpawnLocation();
 end
 
 function g.UpdateTimerDesc(self)
@@ -110,6 +120,13 @@ end
 
 function g.UpdateFrameLanguage(self)
     self:GetRemainTimeTextObj():SetTextByKey('value', '残り時間');
+end
+
+function g.UpdateSpawnLocation(self)
+    local textobj = self:GetSpawnTextObj();
+    textobj[1]:SetTextByKey('value', self:GetSpawnLocation(1));
+    textobj[2]:SetTextByKey('value', self:GetSpawnLocation(2));
+    textobj[3]:SetTextByKey('value', self:GetSpawnLocation(3));
 end
 
 -- GET UI Object
@@ -137,6 +154,14 @@ end
 
 function g.GetRemainMinObj(self)
     return GET_CHILD(self:GetRemainClockGbox(), 'remainMin', 'ui::CRichText')
+end
+
+function g.GetSpawnTextObj(self)
+    return {
+        GET_CHILD(self.Frame, "spawnText1", 'ui::CRichText'),
+        GET_CHILD(self.Frame, "spawnText2", 'ui::CRichText'),
+        GET_CHILD(self.Frame, "spawnText3", 'ui::CRichText')
+    };
 end
 
 -- timer start/stop update
@@ -202,6 +227,14 @@ function g.GetMinute(self)
     return string.format('%02d', math.floor(self.timerTick % 60));
 end
 
+function g.GetSpawnLocation(self, num)
+    if num <= #g.spawnmap then
+        return g.spawnmap[num];
+    else
+        return "";
+    end
+end
+
 -- caller
 function NOTICECROWD_ON_TICK(frame)
     g:TickTimer();
@@ -257,11 +290,14 @@ function NOTICECROWD_ON_INIT(addon, frame)
 
         acutil.slashCommand("/nextcrowd", NOTICECROWD_SHOW_NEXT_CROWD);
         acutil.slashCommand("/showtimer", NOTICECROWD_TOGGLE_WINDOW);
-        acutil.slashCommand("/savetimelog", NOTICECROWD_SAVE_TIMELOG);
-        acutil.slashCommand("/setlasttimenow", NOTICECROWD_SET_TIMELOG);
+        -- acutil.slashCommand("/savetimelog", NOTICECROWD_SAVE_TIMELOG);
+        -- acutil.slashCommand("/setlasttimenow", NOTICECROWD_SET_TIMELOG);
         acutil.slashCommand("/setcrowdtime", NOTICECROWD_SET_TIME);
+        acutil.slashCommand("/showptchat", NOTICECROWD_SHOW_PTCHAT);
+        acutil.slashCommand("/noticecrowd", NOTICECROWD_HELP);
 
-        local f,m = pcall(NOTICECROWD_LOAD_TIMELOG);
+        NOTICECROWD_LOAD_TIMELOG();
+        NOTICECROWD_SAVE_TIMELOG();
         g:LoadSettings();
         g:SaveSettings();
 
@@ -279,6 +315,7 @@ function NOTICECROWD_GAME_START(frame)
     if (enabled == 1) then
         NOTICECROWD_SET_WINDOW();
     end
+    -- g.spawnmap = {};
 end
 
 function NOTICECROWD_TOGGLE_WINDOW()
@@ -293,6 +330,15 @@ function NOTICECROWD_TOGGLE_WINDOW()
         g.settings.EnabledMaps[tostring(mapId)] = 1
     end
     g:SaveSettings();
+end
+
+function NOTICECROWD_REVIEW_WINDOW()
+    local frame = g.frame
+    local mapId = session.GetMapID();
+    local enabled = g.settings.EnabledMaps[tostring(mapId)];
+    if (enabled == 1) then
+        NOTICECROWD_SET_WINDOW();
+    end
 end
 
 function NOTICECROWD_SET_WINDOW()
@@ -312,7 +358,8 @@ function NOTICECROWD_SET_TIMELOG()
         min = serverTime.wMinute,
         sec = serverTime.wSecond
     }
-    g:SaveSettings();
+    NOTICECROWD_SAVE_TIMELOG();
+    NOTICECROWD_REVIEW_WINDOW();
 end
 
 function NOTICECROWD_SET_TIME(commands)
@@ -334,22 +381,20 @@ function NOTICECROWD_SET_TIME(commands)
         g.lasttime.day = tonumber(serverTime.wDay)- 1;
     end
     NOTICECROWD_SAVE_TIMELOG();
+    NOTICECROWD_REVIEW_WINDOW();
 end
 
 function NOTICECROWD_SAVE_TIMELOG()
-    if g.lasttime ~= nil then
-        acutil.saveJSON(g.timerlogFileLoc, g.lasttime);
-    end
+    acutil.saveJSON(g.timerlogFileLoc, g.lasttime);
 end
 
 function NOTICECROWD_LOAD_TIMELOG()
-    local t,err = acutil.loadJSON(g.timerlogFileLoc, g.lasttime);
-    if err then
-        NOTICECROWD_SAVE_TIMELOG();
-    else
-        g.lasttime = t;
-        NOTICECROWD_SAVE_TIMELOG();
+    local t,err = acutil.loadJSON(g.timerlogFileLoc, g.DefaultLastTime);
+    
+    if not t then
+        t = g.DefaultLastTime;
     end
+    g.lasttime = t;
 end
 
 function NOTICECROWD_HOOK_NOTICE_ON_MSG(frame, msg, argStr, argNum)
@@ -364,12 +409,37 @@ function g.NOTICECROWD_NEW_NOTICE_ON_MSG(frame, msg, argStr, argNum)
     -- DEVELOPERCONSOLE_PRINT_TEXT("msg: "..msg.." argStr: "..argStr);
     if string.find(argStr,"AppearPCMonster") then
         -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
-        CHAT_SYSTEM("A Crowd of Followers Appeared");
+        local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
+        local cmsg = "追従者出現:"..mapstr;
+        table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+        CHAT_SYSTEM(cmsg);
+        if g.settings.ShowPTChat then
+            ui.Chat("/p "..cmsg);
+        end
         GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
-        imcSound.PlayMusic('PLAYLIST_m_boss_scenario2');
+        imcSound.PlayMusic('m_boss_scenario2');
         NOTICECROWD_SET_TIMELOG();
         NOTICECROWD_ON_COMPLETE();
+        self:UpdateSpawnLocation();
+    elseif string.find(argStr,"DisappearPCMonster") then
+        g.spawnmap = {};
     end
+end
+
+function NOTICECROWD_DEBUG_NOTICE_MSG()
+    local argStr = "!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150714_011746$*^#@!";
+        --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20161012_023686$*^#@!",
+        --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20170418_027530$*^#@!",
+        --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150804_014154$*^#@!"
+        local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
+        local cmsg = "追従者出現:"..mapstr;
+        table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+        CHAT_SYSTEM(argStr);
+        CHAT_SYSTEM(cmsg);
+        if g.settings.ShowPTChat then
+            ui.Chat("/p "..cmsg);
+        end
+        g:UpdateSpawnLocation();
 end
 
 function NOTICECROWD_GET_DIFF_TIME()
@@ -383,6 +453,10 @@ function NOTICECROWD_GET_DIFF_TIME()
         local timediff = nowmins - lastmins;
         return NOTICECROWD_CHECK_CROWD_DTIME(timediff);
     else
+        if g.lasttime.day == -1 then
+            CHAT_SYSTEM("it doesnt have last spawn time log");
+            return nil;
+        end
         if serverTime.wDay ~= 1 then
             local daydiff = serverTime.wDay - g.lasttime.day;
             if daydiff ~= 1 then
@@ -460,4 +534,25 @@ function NOTICECROWD_CHECK_CROWD_TIME(timediff)
     else
         CHAT_SYSTEM("time log is too old");
     end 
+end
+
+function NOTICECROWD_SHOW_PTCHAT()
+    if g.settings.ShowPTChat then
+        g.settings.ShowPTChat = false;
+        CHAT_SYSTEM("dont show crowd of follores at pt-chat.");
+    else
+        g.settings.ShowPTChat = true;
+        CHAT_SYSTEM("show crowd of follores at pt-chat.");
+    end
+    g:SaveSettings();
+end
+
+function NOTICECROWD_HELP()
+    CHAT_SYSTEM("このアドオンは、追従者の出る時刻をタイマー形式で表示するアドオンです。");
+    CHAT_SYSTEM("初回利用時は、一度追従者が出るまで待つか、/setcrowdtimeコマンドで前回の出現時間をセットしてください。");
+    CHAT_SYSTEM("コマンド一覧");
+    CHAT_SYSTEM("showtimer: GUI形式で追従者が出るまでの時間を表示/非表示");
+    CHAT_SYSTEM("nextcrowd: テキストチャットに追従者が出るまでの時間を表示");
+    CHAT_SYSTEM("setcrowdtime: /setcrowdtime (時刻) (分) で前回出た追従者の時刻を設定");
+    CHAT_SYSTEM("showptchat: PTチャットへ追従者のログを記録 on/off");
 end
