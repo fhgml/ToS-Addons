@@ -8,7 +8,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.3.1';
+local version = '1.4.1';
 
 
 
@@ -40,11 +40,19 @@ end
 g.lasttime = nil;
 g.loaded = false;
 
+g.spawnstarttime = 0;
+g.spawnendtime = 0;
+
 g.timerTick = 0
 g.startTick = 0
 g.loopTick = 0
 g.description = nil
 g.spawnmap = {};
+g.spawnmapID = {};
+
+g.CROWDBYMAP = 4;
+g.crowdAll = 0;
+g.crowdKilled = 0;
 
 -- DEVELOPERCONSOLE_PRINT_TEXT(string.format("%s.lua is loaded", addonName));
 
@@ -102,7 +110,8 @@ function g.UpdateFrame(self)
     self:UpdateTimerDesc();
     self:UpdateTimerRemaining();
     self:UpdateFrameLanguage();
-    self:UpdateSpawnLocation();
+    self:UpdatePopCount();
+    self:UpdatePopTime();
 end
 
 function g.UpdateTimerDesc(self)
@@ -124,11 +133,15 @@ function g.UpdateFrameLanguage(self)
     self:GetRemainTimeTextObj():SetTextByKey('value', '残り時間');
 end
 
-function g.UpdateSpawnLocation(self)
-    local textobj = self:GetSpawnTextObj();
-    textobj[1]:SetTextByKey('value', self:GetSpawnLocation(1));
-    textobj[2]:SetTextByKey('value', self:GetSpawnLocation(2));
-    textobj[3]:SetTextByKey('value', self:GetSpawnLocation(3));
+function g.UpdatePopCount(self)
+    local msgStr = "追従者数: "..g.crowdKilled.."/"..g.crowdAll;
+    self:GetPopCountObj():SetTextByKey('value', msgStr);
+end
+
+function g.UpdatePopTime(self)
+    local sptime = self:GetSpawnTime();
+    local msgStr = "予想時刻: "..sptime;
+    self:GetPopTimeObj():SetTextByKey('value', msgStr);
 end
 
 -- GET UI Object
@@ -158,12 +171,12 @@ function g.GetRemainMinObj(self)
     return GET_CHILD(self:GetRemainClockGbox(), 'remainMin', 'ui::CRichText')
 end
 
-function g.GetSpawnTextObj(self)
-    return {
-        GET_CHILD(self.Frame, "spawnText1", 'ui::CRichText'),
-        GET_CHILD(self.Frame, "spawnText2", 'ui::CRichText'),
-        GET_CHILD(self.Frame, "spawnText3", 'ui::CRichText')
-    };
+function g.GetPopCountObj(self)
+    return GET_CHILD(self.Frame, 'popCount', 'ui::CRichText')
+end
+
+function g.GetPopTimeObj(self)
+    return GET_CHILD(self.Frame, 'popTime', 'ui::CRichText')
 end
 
 -- timer start/stop update
@@ -229,12 +242,21 @@ function g.GetMinute(self)
     return string.format('%02d', math.floor(self.timerTick % 60));
 end
 
-function g.GetSpawnLocation(self, num)
-    if num <= #g.spawnmap then
-        return g.spawnmap[num];
-    else
-        return "";
+function g.GetSpawnTime(self)
+    return string.format('%02d : %02d - %02d : %02d', 
+        self.spawnstarttime,
+        self.lasttime.min,
+        self.spawnendtime,
+        self.lasttime.min
+    );
+end
+
+function g.AddHour(self, hour1, hour2)
+    local added = tonumber(hour1) + tonumber(hour2);
+    while added >= 24 do
+        added = added - 24;
     end
+    return added;
 end
 
 -- caller
@@ -410,41 +432,37 @@ end
 function g.NOTICECROWD_NEW_NOTICE_ON_MSG(frame, msg, argStr, argNum)
     -- DEVELOPERCONSOLE_PRINT_TEXT("msg: "..msg.." argStr: "..argStr);
     if string.find(argStr,"AppearPCMonster") then
-        -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
-        --local mapstr = string.gsub(argStr,".*(@dicID.*%*%^).*","%1");
-        --local cmsg = "追従者出現:"..mapstr;
-        --table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
-        --CHAT_SYSTEM(cmsg);
-        --if g.settings.ShowPTChat then
-        --    ui.Chat("/p "..cmsg);
-        --end
-        --GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
-        --imcSound.PlayMusic('m_boss_scenario2');
-        --NOTICECROWD_SET_TIMELOG();
-        --NOTICECROWD_ON_COMPLETE();
-        --self:UpdateSpawnLocation();
         NOTICECROWD_APPEARCROWD(argStr);
     elseif string.find(argStr,"DisappearPCMonster") then
+        g.crowdKilled = g.crowdKilled + 1;
         g.spawnmap = {};
+        g.spawnmapID = {};
+        g:UpdateFrame();
     end
 end
 
 function NOTICECROWD_APPEARCROWD(str)
     -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
+    if (g.crowdKilled > 0) then
+        g.crowdKilled = 0;
+        g.crowdAll = 0;
+    end
+    g.crowdAll = g.crowdAll + g.CROWDBYMAP;
     local mapstr = string.gsub(str,".*(@dicID.*%*%^).*","%1");
     local cmsg = "追従者出現:"..mapstr;
     table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+    table.insert(g.spawnmapID, mapstr);
     CHAT_SYSTEM(cmsg);
     if g.settings.ShowPTChat then
         ui.Chat("/p "..cmsg);
     end
     GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
     imcSound.PlayMusic('m_boss_scenario2');
-    NCSPAWNWINDOW_COPY_SPAWN(g.spawnmap);
+    NCSPAWNWINDOW_COPY_SPAWN(g.spawnmapID);
     NCSPAWNWINDOW_SET_WINDOW();
     NOTICECROWD_SET_TIMELOG();
     NOTICECROWD_ON_COMPLETE();
-    g:UpdateSpawnLocation();
+    g:UpdateFrame();
 end
 
 function NOTICECROWD_DEBUG_NOTICE_MSG()
@@ -488,13 +506,19 @@ function NOTICECROWD_CHECK_CROWD_DTIME(timediff)
     local remain_time = nil;
     if timediff < 240 then
         remain_time = 240 - timediff;
+        g.spawnstarttime = g:AddHour(tonumber(g.lasttime.hour), 4);
+        g.spawnendtime = g:AddHour(tonumber(g.lasttime.hour), 6);
         g:SetTimerDesc("出現まで");
     elseif timediff < 360 then
         remain_time = 360 - timediff;
+        g.spawnstarttime = g:AddHour(tonumber(g.lasttime.hour), 4);
+        g.spawnendtime = g:AddHour(tonumber(g.lasttime.hour), 6);
         g:SetTimerDesc("出現終了まで");
     elseif timediff < 480 then
         remain_time = 480 - timediff;
         g:SetTimerDesc("出現まで(一回見逃し)");
+        g.spawnstarttime = g:AddHour(tonumber(g.lasttime.hour), 8);
+        g.spawnendtime = g:AddHour(tonumber(g.lasttime.hour), 12);
     else
         CHAT_SYSTEM("以前記録された時刻が古く出現時間を特定できません");
         remain_time = nil;

@@ -10,7 +10,9 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.3.1';
+local version = '1.4.1';
+
+local DEBUG_FLAG = false;
 
 
 
@@ -33,6 +35,7 @@ end
 g.loaded = false;
 
 g.spawnmap = {};
+g.spawnmapClass = {};
 
 -- DEVELOPERCONSOLE_PRINT_TEXT(string.format("%s.lua is loaded", addonName));
 
@@ -81,6 +84,7 @@ end
 
 function g.ClearWindow(self)
     g.spawnmap = {};
+    g.spawnmapClass = {};
 end
 
 function g.SaveFramePosition(self, X, Y)
@@ -118,10 +122,22 @@ end
 
 function g.GetSpawnLocation(self, num)
     if num <= #g.spawnmap then
-        return g.spawnmap[num];
+        local mapstr = NCSPAWNWINDOW_GET_DIC_MAPNAME(g.spawnmap[num]);
+        return mapstr;
+    --    return g.spawnmap[num];
     else
         return "";
     end
+end
+
+function NCSPAWNWINDOW_GET_DIC_MAPNAME(str)
+    local c_str = dictionary.ReplaceDicIDInCompStr(str);
+    return c_str;
+end
+
+-- warp
+function g.Warp(self, className)
+     _G.WORLDMAP2_TOKEN_WARP(className);
 end
 
 -- UI イベント
@@ -145,6 +161,25 @@ function NCSPAWNWINDOW_END_DRAG()
     local X = g.Frame:GetX();
     local Y = g.Frame:GetY();
     g:SaveFramePosition(X, Y);
+end
+
+
+function NCSPAWNWINDOW_WARP1()
+    if #g.spawnmap >=1 then
+        g:Warp(g.spawnmapClass[1].ClassName);
+    end
+end
+
+function NCSPAWNWINDOW_WARP2()
+    if #g.spawnmap >=2 then
+        g:Warp(g.spawnmapClass[2].ClassName);
+    end
+end
+
+function NCSPAWNWINDOW_WARP3()
+    if #g.spawnmap >=3 then
+        g:Warp(g.spawnmapClass[3].ClassName);
+    end
 end
 
 -- 初期設定
@@ -198,4 +233,11 @@ end
 
 function NCSPAWNWINDOW_COPY_SPAWN(spmap)
     g.spawnmap = spmap;
+    if #g.spawnmap == 1 then
+        g.spawnmapClass = {};
+    end
+    table.insert(g.spawnmapClass, _G.GetClassByStrProp('Map', 'Name', g.spawnmap[#g.spawnmap]));
+    --for i = 1 , #g.spawnmap do
+    --    g.spawnmapClass[i] = _G.GetClassByStrProp('Map', 'Name', g.spawnmap[i]);
+    --end 
 end
