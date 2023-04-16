@@ -8,7 +8,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.4.1';
+local version = '1.4.3';
 
 
 
@@ -25,6 +25,9 @@ g.DefaultSettings = {};
 g.DefaultSettings.Position = {X = 400, Y = 300};
 g.DefaultSettings.EnabledMaps = {};
 g.DefaultSettings.ShowPTChat = false;
+g.DefaultSettings.NoticeBGM = true;
+g.DefaultSettings.NoticeSE = true;
+g.DefaultSettings.NoticeVoice = true;
 
 g.DefaultLastTime = {
     day = -1,
@@ -130,7 +133,7 @@ function g.UpdateTimerRemaining(self)
 end
 
 function g.UpdateFrameLanguage(self)
-    self:GetRemainTimeTextObj():SetTextByKey('value', '残り時間');
+    self:GetRemainTimeTextObj():SetTextByKey('value', '追従者残り時間');
 end
 
 function g.UpdatePopCount(self)
@@ -319,6 +322,9 @@ function NOTICECROWD_ON_INIT(addon, frame)
         acutil.slashCommand("/setcrowdtime", NOTICECROWD_SET_TIME);
         acutil.slashCommand("/showptchat", NOTICECROWD_SHOW_PTCHAT);
         acutil.slashCommand("/noticecrowd", NOTICECROWD_HELP);
+        acutil.slashCommand("/ncnoticebgm", NOTICECROWD_TOGGLE_BGM);
+        acutil.slashCommand("/ncnoticese", NOTICECROWD_TOGGLE_SE);
+        acutil.slashCommand("/ncnoticevoice", NOTICECROWD_TOGGLE_VOICE);
 
         NOTICECROWD_LOAD_TIMELOG();
         NOTICECROWD_SAVE_TIMELOG();
@@ -438,6 +444,7 @@ function g.NOTICECROWD_NEW_NOTICE_ON_MSG(frame, msg, argStr, argNum)
         g.spawnmap = {};
         g.spawnmapID = {};
         g:UpdateFrame();
+        NCSPAWNWINDOW_COPY_COUNT(g.crowdKilled.."/"..g.crowdAll);
     end
 end
 
@@ -456,10 +463,20 @@ function NOTICECROWD_APPEARCROWD(str)
     if g.settings.ShowPTChat then
         ui.Chat("/p "..cmsg);
     end
-    GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
-    imcSound.PlayMusic('m_boss_scenario2');
+    if g.settings.NoticeVoice then
+        GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
+    end
+    if g.settings.NoticeBGM then
+        imcSound.PlayMusic('m_boss_scenario2');
+    end
+    if g.settings.NoticeSE then
+        imcSound.PlaySoundEvent('button_click_stats_up');
+    end
+    --GetMyActor():GetEffect():PlaySound('voice_archer_multishot_cast');
+    --imcSound.PlayMusic('m_boss_scenario2');
     NCSPAWNWINDOW_COPY_SPAWN(g.spawnmapID);
     NCSPAWNWINDOW_SET_WINDOW();
+    NCSPAWNWINDOW_COPY_COUNT(g.crowdKilled.."/"..g.crowdAll);
     NOTICECROWD_SET_TIMELOG();
     NOTICECROWD_ON_COMPLETE();
     g:UpdateFrame();
@@ -584,6 +601,39 @@ function NOTICECROWD_SHOW_PTCHAT()
     g:SaveSettings();
 end
 
+function NOTICECROWD_TOGGLE_BGM()
+    if g.settings.NoticeBGM then
+        g.settings.NoticeBGM = false;
+        CHAT_SYSTEM("dont notice at bgm.");
+    else
+        g.settings.NoticeBGM = true;
+        CHAT_SYSTEM("notice at bgm.");
+    end
+    g:SaveSettings();
+end
+
+function NOTICECROWD_TOGGLE_SE()
+    if g.settings.NoticeSE then
+        g.settings.NoticeSE = false;
+        CHAT_SYSTEM("dont notice at SE.");
+    else
+        g.settings.NoticeBGM = true;
+        CHAT_SYSTEM("notice at SE.");
+    end
+    g:SaveSettings();
+end
+
+function NOTICECROWD_TOGGLE_VOICE()
+    if g.settings.NoticeVoice then
+        g.settings.NoticeVoice = false;
+        CHAT_SYSTEM("dont notice at voice.");
+    else
+        g.settings.NoticeVoice = true;
+        CHAT_SYSTEM("notice at voice.");
+    end
+    g:SaveSettings();
+end
+
 function NOTICECROWD_HELP()
     CHAT_SYSTEM("このアドオンは、追従者の出る時刻をタイマー形式で表示するアドオンです。");
     CHAT_SYSTEM("初回利用時は、一度追従者が出るまで待つか、/setcrowdtimeコマンドで前回の出現時間をセットしてください。");
@@ -593,4 +643,7 @@ function NOTICECROWD_HELP()
     CHAT_SYSTEM("setcrowdtime: /setcrowdtime (時刻) (分) で前回出た追従者の時刻を設定");
     CHAT_SYSTEM("showptchat: PTチャットへ追従者のログを記録 on/off");
     CHAT_SYSTEM("ncshowspawn: 出現先を別ウィンドウに出力する on/off");
+    CHAT_SYSTEM("ncnoticebgm: 告知時にBGMを鳴らす on/off");
+    CHAT_SYSTEM("ncnoticevoice: 告知時にボイスを鳴らす on/off");
+    CHAT_SYSTEM("ncnoticese: 告知時にSEを鳴らす on/off");
 end

@@ -10,7 +10,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.4.1';
+local version = '1.4.2';
 
 local DEBUG_FLAG = false;
 
@@ -36,6 +36,7 @@ g.loaded = false;
 
 g.spawnmap = {};
 g.spawnmapClass = {};
+g.countmsg = "";
 
 -- DEVELOPERCONSOLE_PRINT_TEXT(string.format("%s.lua is loaded", addonName));
 
@@ -96,6 +97,12 @@ end
 -- update window
 function g.UpdateFrame(self)
     self:UpdateSpawnLocation();
+    self:UpdateCrowdCount();
+end
+
+function g.UpdateCrowdCount(self)
+    local msgStr = "追従者数: "..g.countmsg;
+    self:GetPopCountObj():SetTextByKey('value', msgStr);
 end
 
 function g.UpdateSpawnLocation(self)
@@ -118,6 +125,10 @@ function g.GetSpawnTextObj(self)
         GET_CHILD(self.Frame, "spawnText2", 'ui::CRichText'),
         GET_CHILD(self.Frame, "spawnText3", 'ui::CRichText')
     };
+end
+
+function g.GetPopCountObj(self)
+    return GET_CHILD(self.Frame, 'popCount', 'ui::CRichText')
 end
 
 function g.GetSpawnLocation(self, num)
@@ -240,4 +251,9 @@ function NCSPAWNWINDOW_COPY_SPAWN(spmap)
     --for i = 1 , #g.spawnmap do
     --    g.spawnmapClass[i] = _G.GetClassByStrProp('Map', 'Name', g.spawnmap[i]);
     --end 
+end
+
+function NCSPAWNWINDOW_COPY_COUNT(countmsg)
+    g.countmsg = countmsg;
+    g:UpdateFrame();
 end
