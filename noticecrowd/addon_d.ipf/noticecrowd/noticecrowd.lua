@@ -8,9 +8,9 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.4.3';
+local version = '1.4.5';
 
-
+local debug_flg = false;
 
 --ライブラリ読み込み
 local acutil = require('acutil');
@@ -20,6 +20,8 @@ if not _G['unpack'] and (table and table.unpack) then _G['unpack'] = table.unpac
 g.settingsDirLoc = string.format("../addons/%s", addonNameLower);
 g.settingsFileLoc = string.format("%s/settings.json", g.settingsDirLoc);
 g.timerlogFileLoc = string.format("%s/timer.json", g.settingsDirLoc);
+
+g.debugFileLoc = string.format("%s/debug.txt", g.settingsDirLoc);
 
 g.DefaultSettings = {};
 g.DefaultSettings.Position = {X = 400, Y = 300};
@@ -436,6 +438,15 @@ function NOTICECROWD_HOOK_NOTICE_ON_MSG(frame, msg, argStr, argNum)
 end
 
 function g.NOTICECROWD_NEW_NOTICE_ON_MSG(frame, msg, argStr, argNum)
+    if debug_flg then
+        local file,err = io.open(g.debugFileLoc, "a")
+        if err then
+            ui.SysMsg("SAVE CHAT FAILED.");
+        else
+            file:write(argStr.."\n");
+            file:close();
+        end
+    end
     -- DEVELOPERCONSOLE_PRINT_TEXT("msg: "..msg.." argStr: "..argStr);
     if string.find(argStr,"AppearPCMonster") then
         NOTICECROWD_APPEARCROWD(argStr);
@@ -450,16 +461,37 @@ end
 
 function NOTICECROWD_APPEARCROWD(str)
     -- DEVELOPERCONSOLE_PRINT_TEXT("A Crowd of Followers Appeared");
+
+    --if debug_flg then
+    --    acutil.saveJSON(self.debugFileLoc, str);
+    --end
+
     if (g.crowdKilled > 0) then
         g.crowdKilled = 0;
         g.crowdAll = 0;
     end
     g.crowdAll = g.crowdAll + g.CROWDBYMAP;
-    local mapstr = string.gsub(str,".*(@dicID.*%*%^).*","%1");
-    local cmsg = "追従者出現:"..mapstr;
-    table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
-    table.insert(g.spawnmapID, mapstr);
-    CHAT_SYSTEM(cmsg);
+    local mapstr = "";
+    --local mapstr = string.gsub(str,".*(@dicID.*%*%^).*","%1");
+    local cmsg = "";
+    if string.find(str, "%(.*,.*,.*%)") then
+        -- 非常時 (文字列直打ち)
+        mapstr = string.gsub(str,".*AppearPCMonster.*$%*$name$%*$%(.*,.*,(.*)%)#@!","%1");
+        cmsg = "追従者出現:"..mapstr;
+        table.insert(g.spawnmap, mapstr);
+        table.insert(g.spawnmapID, mapstr);
+        CHAT_SYSTEM(cmsg);
+    else
+        mapstr = string.gsub(str,".*AppearPCMonster.*$%*$name$%*$(.*)#@!","%1");
+        cmsg = "追従者出現:"..dictionary.ReplaceDicIDInCompStr(mapstr);
+        table.insert(g.spawnmap, dictionary.ReplaceDicIDInCompStr(mapstr));
+        if string.find(mapstr,"dicID") then
+            table.insert(g.spawnmapID, mapstr);
+        else
+            table.insert(g.spawnmapID, dictionary.ReplaceDicIDInCompStr(mapstr));
+        end
+        CHAT_SYSTEM(cmsg);
+    end
     if g.settings.ShowPTChat then
         ui.Chat("/p "..cmsg);
     end
@@ -482,12 +514,24 @@ function NOTICECROWD_APPEARCROWD(str)
     g:UpdateFrame();
 end
 
-function NOTICECROWD_DEBUG_NOTICE_MSG()
-    local argStr = "!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150714_011746$*^#@!";
+function NOTICECROWD_DEBUG_NOTICE_MSG(num)
+    local argStr = "!@#$AppearPCMonster$*$name$*$(바이덴티스 신당,Videntis Shrine,バイデンティス神堂)#@!"
+    if num == 1 then
+        argStr = "!@#$AppearPCMonster{name}$*$name$*$노브리어 숲#@!";
+    elseif num == 2 then
+        argStr = "!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20161012_023686$*^#@!";
+    end
+    --!@#$AppearPCMonster{name}$*$name$*$카듀멜 절벽#@!
+    --!@#$AppearPCMonster{name}$*$name$*$별의 탑 1층#@!
+    --!@#$AppearPCMonster{name}$*$name$*$아르커스 숲#@!
+    --!@#$AppearPCMonster{name}$*$name$*$대지의 요새 거주구역#@!
+    --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150714_011746$*^#@!";
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20161012_023686$*^#@!",
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20170418_027530$*^#@!",
         --"!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20150804_014154$*^#@!"
         NOTICECROWD_APPEARCROWD(argStr);
+    --argStr = "!@#$AppearPCMonster{name}$*$name$*$@dicID_^*$ETC_20161012_023686$*^#@!";
+    --NOTICECROWD_APPEARCROWD(argStr);
 end
 
 function NOTICECROWD_GET_DIFF_TIME()
@@ -531,6 +575,8 @@ function NOTICECROWD_CHECK_CROWD_DTIME(timediff)
         g.spawnstarttime = g:AddHour(tonumber(g.lasttime.hour), 4);
         g.spawnendtime = g:AddHour(tonumber(g.lasttime.hour), 6);
         g:SetTimerDesc("出現終了まで");
+        g.crowdKilled = 0;
+        g.crowdAll = 0;
     elseif timediff < 480 then
         remain_time = 480 - timediff;
         g:SetTimerDesc("出現まで(一回見逃し)");

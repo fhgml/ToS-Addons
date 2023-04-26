@@ -10,7 +10,7 @@ _G["ADDONS"][author] = _G["ADDONS"][author] or {};
 _G["ADDONS"][author][addonName] = _G["ADDONS"][author][addonName] or {};
 local g = _G["ADDONS"][author][addonName];
 
-local version = '1.4.2';
+local version = '1.4.5';
 
 local DEBUG_FLAG = false;
 
@@ -110,6 +110,9 @@ function g.UpdateSpawnLocation(self)
     textobj[1]:SetTextByKey('value', self:GetSpawnLocation(1));
     textobj[2]:SetTextByKey('value', self:GetSpawnLocation(2));
     textobj[3]:SetTextByKey('value', self:GetSpawnLocation(3));
+    textobj[4]:SetTextByKey('value', self:GetSpawnLocation(4));
+    textobj[5]:SetTextByKey('value', self:GetSpawnLocation(5));
+    textobj[6]:SetTextByKey('value', self:GetSpawnLocation(6));
 end
 
 -- GET UI Object
@@ -123,7 +126,10 @@ function g.GetSpawnTextObj(self)
     return {
         GET_CHILD(self.Frame, "spawnText1", 'ui::CRichText'),
         GET_CHILD(self.Frame, "spawnText2", 'ui::CRichText'),
-        GET_CHILD(self.Frame, "spawnText3", 'ui::CRichText')
+        GET_CHILD(self.Frame, "spawnText3", 'ui::CRichText'),
+        GET_CHILD(self.Frame, "spawnText4", 'ui::CRichText'),
+        GET_CHILD(self.Frame, "spawnText5", 'ui::CRichText'),
+        GET_CHILD(self.Frame, "spawnText6", 'ui::CRichText')
     };
 end
 
@@ -193,6 +199,24 @@ function NCSPAWNWINDOW_WARP3()
     end
 end
 
+function NCSPAWNWINDOW_WARP4()
+    if #g.spawnmap >=4 then
+        g:Warp(g.spawnmapClass[4].ClassName);
+    end
+end
+
+function NCSPAWNWINDOW_WARP5()
+    if #g.spawnmap >=5 then
+        g:Warp(g.spawnmapClass[5].ClassName);
+    end
+end
+
+function NCSPAWNWINDOW_WARP6()
+    if #g.spawnmap >=6 then
+        g:Warp(g.spawnmapClass[6].ClassName);
+    end
+end
+
 -- 初期設定
 function NCSPAWNWINDOW_ON_INIT(addon, frame)
     -- DEVELOPERCONSOLE_PRINT_TEXT("noticecrowd:set init.");
@@ -242,12 +266,33 @@ function NCSPAWNWINDOW_SET_WINDOW()
     end
 end
 
+function NCSPAWNWINDOW_SEARCH_MAP(mapstr)
+    local targetMap = nil;
+
+    local clsList, cnt = GetClassList('worldmap2_submap_data');
+    for i = 0, cnt-1 do
+        local cls = GetClassByIndexFromList(clsList, i);
+        local mapData = GetClass('Map', cls.MapName);
+        local mapName = string.gsub(dictionary.ReplaceDicIDInCompStr(mapData.Name), " ", "");
+
+        if string.find(string.lower(mapName), string.lower(mapstr)) ~= nil then
+            targetMap = mapData;
+            break;
+        end
+    end
+    return targetMap;
+end
+
 function NCSPAWNWINDOW_COPY_SPAWN(spmap)
     g.spawnmap = spmap;
     if #g.spawnmap == 1 then
         g.spawnmapClass = {};
     end
-    table.insert(g.spawnmapClass, _G.GetClassByStrProp('Map', 'Name', g.spawnmap[#g.spawnmap]));
+    if string.find(g.spawnmap[#g.spawnmap],"dicID") then
+        table.insert(g.spawnmapClass, _G.GetClassByStrProp('Map', 'Name', g.spawnmap[#g.spawnmap]));
+    else
+        table.insert(g.spawnmapClass, NCSPAWNWINDOW_SEARCH_MAP(g.spawnmap[#g.spawnmap]));
+    end
     --for i = 1 , #g.spawnmap do
     --    g.spawnmapClass[i] = _G.GetClassByStrProp('Map', 'Name', g.spawnmap[i]);
     --end 
