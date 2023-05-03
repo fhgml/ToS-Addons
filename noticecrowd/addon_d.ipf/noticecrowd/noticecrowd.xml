@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<uiframe name="noticecrowd" x="400" y="300" width="300" height="180" version="2">
+<uiframe name="noticecrowd" x="400" y="300" width="300" height="210" version="2">
   <frame layout_gravity="left top" margin="0 0 0 0"/>
   <input moveable="true" moveintitlebar="false" hittestframe="true" resize="false"/>
   <draw drawframe="true" drawtitlebar="false" drawnotitlebar="false"/>
-  <layer layerlevel="10"/>
+  <layer layerlevel="12"/>
   <skin frameskin="chat_window"/>
   <option closebutton="false" visible="false"/>
   <script OpenScp="NOTICECROWD_OPEN" CloseScp="NOTICECROWD_CLOSE" LBtnUpScp="NOTICECROWD_END_DRAG"/>
@@ -18,5 +18,9 @@
       <richtext name="remainTimeSep" rect="0 0 48 50" margin="72 0 0 0" caption="{@st41b}{s48}:{/}{/}" textalign="center top" resizebytext="false" fixwidth="true"/>
       <richtext name="remainMin" rect="0 0 72 50" margin="120 0 0 0" format="{@st41b}{s48}%s{/}{/}" param1="value" param1_def="00" textalign="left top" resizebytext="false" fixwidth="true"/>
     </groupbox>
+
+    <richtext name="popTime" rect="0 0 280 20" margin="10 146 0 0" format="{@st43}{s20}%s{/}{/}" param1="value"/>
+    <richtext name="popCount" rect="0 0 280 20" margin="10 176 0 0" format="{@st43}{s20}%s{/}{/}" param1="value"/>
+  
   </controls>
 </uiframe>
