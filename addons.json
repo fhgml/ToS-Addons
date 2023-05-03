@@ -1,14 +1,30 @@
-[{
-  "name": "Notice Crowd",
-  "file": "noticecrowd",
-  "extension": "ipf",
-  "fileVersion": "v1.2.2",
-  "releaseTag": "noticecrowd-v1.2.2",
-  "unicode": "📖",
-  "description": "追従者の出現時間タイマー",
-  "tags": [
-      "boss",
-      "timer",
-      "corwd"
-  ]
-}]
+[
+  {
+    "name": "Notice Crowd",
+    "file": "noticecrowd",
+    "extension": "ipf",
+    "fileVersion": "v1.4.8",
+    "releaseTag": "noticecrowd-v1.4.8",
+    "unicode": "⛄",
+    "description": "追従者の出現時間タイマー",
+    "tags": [
+        "boss",
+        "timer",
+        "corwd"
+    ]
+  }
+  {
+    "name": "Notice Baubas",
+    "file": "noticebaubas",
+    "extension": "ipf",
+    "fileVersion": "v1.0.1",
+    "releaseTag": "noticecrowd-v1.0.1",
+    "unicode": "⛄",
+    "description": "バウバスの出現時間タイマー",
+    "tags": [
+        "boss",
+        "timer",
+        "baubas"
+    ]
+  }
+]
